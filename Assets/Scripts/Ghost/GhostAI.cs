@@ -1,198 +1,224 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
+using System.Reflection;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
+using UnityEngine.UIElements;
 
 public class GhostAI : MonoBehaviour
 {
-    [SerializeField] private Transform _target;
-
-    private List<Tile> _tiles = new List<Tile>();
-    private TileManager _manager;
-    private Tile _currentTile;
-
-    public GhostMove _ghost;
-    public Tile _nextTile = null;
-    public Tile _targetTile;
-
-    private void Awake()
+    [SerializeField] GameObject _debugTile;
+    public List<Vector2> CalculatePath(Vector3 ghostPosition, Vector3 playerPosition)
     {
-        _manager = FindObjectOfType<TileManager>();
-        _tiles = TileManager.tiles;
-    }
-    public void AILogic()
-    {
-        CalculateCurrentNextTile();
-        _targetTile = GetTargetTilePerGhost();
+        List<Vector2> path = new List<Vector2>();
 
-        if (_nextTile.occupied || _currentTile.isIntersection)
+        bool[,] map = new bool[TileManager.width,TileManager.height];
+        for (int i = 0; i < TileManager.tiles.Count; i++)
         {
-            //If next tile is wall
-            if (_nextTile.occupied && !_currentTile.isIntersection)
-            {
-                //If ghost is moving horizontal
-                if (_ghost.Direction.x != 0)
-                {
-                    //Go up if down is not available
-                    if (_currentTile.down == null)
-                    {
-                        _ghost.Direction = Vector3.up;
-                    }
-                    else
-                    {
-                        _ghost.Direction = Vector3.down;
-                    }
-                }
-                //If ghost is moving vertical
-                else if (_ghost.Direction.y != 0)
-                {
-                    //Go right if left is not available
-                    if (_currentTile.left == null)
-                    {
-                        _ghost.Direction = Vector3.right;
-                    }
-                    else
-                    {
-                        _ghost.Direction = Vector3.left;
-                    }
-                }
-            }
+            Tile tile = TileManager.tiles[i];
+            int height = Mathf.FloorToInt(i/TileManager.width);
+            int width = i - height*TileManager.width;
+            height = TileManager.height - height - 1;
+            map[width, height] = !tile.occupied;
+        }
 
-            if (_currentTile.isIntersection)
+        List<Node> pathNodes = AStar.FindPath((int)ghostPosition.x-1, (int)ghostPosition.y-1, (int)playerPosition.x-1, (int)playerPosition.y - 1, map);
+        if (pathNodes != null)
+        {
+            int id=0;
+            foreach (Node node in pathNodes)
             {
-                //Calculate the distance to the target from each available tile and choose te shortest one
-                float dist1, dist2, dist3, dist4;
-                dist1 = dist2 = dist3 = dist4 = 999999f;
-                if (_currentTile.up != null && !_currentTile.up.occupied && !(_ghost.Direction.y < 0)) dist1 = _manager.distance(_currentTile.up, _targetTile);
-                if (_currentTile.down != null && !_currentTile.down.occupied && !(_ghost.Direction.y > 0)) dist2 = _manager.distance(_currentTile.down, _targetTile);
-                if (_currentTile.left != null && !_currentTile.left.occupied && !(_ghost.Direction.x > 0)) dist3 = _manager.distance(_currentTile.left, _targetTile);
-                if (_currentTile.right != null && !_currentTile.right.occupied && !(_ghost.Direction.x < 0)) dist4 = _manager.distance(_currentTile.right, _targetTile);
-
-                float min = Mathf.Min(dist1, dist2, dist3, dist4);
-                if (min == dist1) _ghost.Direction = Vector3.up;
-                if (min == dist2) _ghost.Direction = Vector3.down;
-                if (min == dist3) _ghost.Direction = Vector3.left;
-                if (min == dist4) _ghost.Direction = Vector3.right;
+                id++;
+                if (id == 1)
+                {
+                    continue;
+                }
+                Vector2 position = Vector2.zero;
+                position.x = node.X+1;
+                position.y = node.Y+1;
+                path.Add(position);
+                //Instantiate(_debugTile, position, Quaternion.identity).name = $"path{id}";
             }
         }
         else
         {
-            //Setter will update the direction
-            _ghost.Direction = _ghost.Direction;
+            Debug.Log($"Playerpos: {(int)playerPosition.x},{(int)playerPosition.y}");
+            Debug.Log($"Ghostpos: {(int)ghostPosition.x},{(int)ghostPosition.y}");
+            Debug.Log("No path found.");
         }
+        return path;
     }
-    public void RunLogic()
+}
+
+public class Node
+{
+    public int X { get; set; }
+    public int Y { get; set; }
+    public double G { get; set; } // cost to move from start to this node
+    public double H { get; set; } // estimated cost to move from this node to end
+    public double F { get { return G + H; } } // estimated total cost to move from start to end through this node
+    public Node Parent { get; set; } // node used to reach this node
+    public Node(int x, int y)
     {
-        CalculateCurrentNextTile();
-        if (_nextTile.occupied || _currentTile.isIntersection)
+        X = x;
+        Y = y;
+    }
+    public override string ToString()
+    {
+        return $"X: {X} Y:{Y}";
+    }
+    public override bool Equals(object obj)
+    {
+        if (obj == null || GetType() != obj.GetType())
         {
-            //If next tile is wall
-            if (_nextTile.occupied && !_currentTile.isIntersection)
+            return false;
+        }
+
+        return X == ((Node)obj).X && Y == ((Node)obj).Y;
+    }
+}
+
+public class AStar
+{
+    public static List<Node> FindPath(int startX, int startY, int endX, int endY, bool[,] map)
+    {
+        // create lists to store nodes to be explored and nodes already explored
+        List<Node> openList = new List<Node>();
+        List<Node> closedList = new List<Node>();
+
+        // create start and end nodes
+        Node startNode = new Node(startX, startY);
+        Node endNode = new Node(endX, endY);
+
+        // add start node to open list
+        openList.Add(startNode);
+
+        // while the open list is not empty
+        while (openList.Count > 0)
+        {
+            if (startNode.Equals(endNode))
             {
-                //If ghost is moving horizontal
-                if (_ghost.Direction.x != 0)
+                break;
+            }
+
+            // find the node in the open list with the lowest F value
+            Node currentNode = openList[0];
+            for (int i = 1; i < openList.Count; i++)
+            {
+                if (openList[i].F < currentNode.F)
                 {
-                    //Go up if down is not available
-                    if (_currentTile.down == null)
-                    {
-                        _ghost.Direction = Vector3.up;
-                    }
-                    else
-                    {
-                        _ghost.Direction = Vector3.down;
-                    }
-                }
-                //If ghost is moving vertical
-                else if (_ghost.Direction.y != 0)
-                {
-                    //Go right if left is not available
-                    if (_currentTile.left == null)
-                    {
-                        _ghost.Direction = Vector3.right;
-                    }
-                    else
-                    {
-                        _ghost.Direction = Vector3.left;
-                    }
+                    currentNode = openList[i];
                 }
             }
 
-            if (_currentTile.isIntersection)
-            {
-                //Choose random available option
-                List<Tile> availableTiles = new List<Tile>();
-                Tile chosenTile;
-                if (_currentTile.up != null && !_currentTile.up.occupied && !(_ghost.Direction.y < 0)) availableTiles.Add(_currentTile.up);
-                if (_currentTile.down != null && !_currentTile.down.occupied && !(_ghost.Direction.y > 0)) availableTiles.Add(_currentTile.down);
-                if (_currentTile.left != null && !_currentTile.left.occupied && !(_ghost.Direction.x > 0)) availableTiles.Add(_currentTile.left);
-                if (_currentTile.right != null && !_currentTile.right.occupied && !(_ghost.Direction.x < 0)) availableTiles.Add(_currentTile.right);
+            // remove the current node from the open list and add it to the closed list
+            openList.Remove(currentNode);
+            closedList.Add(currentNode);
 
-                int rand = Random.Range(0, availableTiles.Count);
-                chosenTile = availableTiles[rand];
-                _ghost.Direction = Vector3.Normalize(new Vector3(chosenTile.x - _currentTile.x, chosenTile.y - _currentTile.y, 0));
+            // if the current node is the end node, we have found a path
+            if (currentNode.Equals(endNode))
+            {
+                // construct the path by backtracking from the end node to the start node
+                return ConstructPath(currentNode);
+            }
+
+            // get a list of the current node's neighbors
+            List<Node> neighbors = GetNeighbors(currentNode, map);
+
+            // for each neighbor of the current node
+            foreach (Node neighbor in neighbors)
+            {
+                // if the neighbor is in the closed list, ignore it
+                if (closedList.Contains(neighbor))
+                {
+                    continue;
+                }
+
+                // calculate the cost to move from the start node to this neighbor
+                double cost = currentNode.G + GetDistance(currentNode, neighbor);
+
+                // if the neighbor is not in the open list, or if the cost to move to this neighbor is
+                // lower than its current cost, set the neighbor's G value to the cost and set its
+                // parent to the current node
+                if (!openList.Contains(neighbor) || cost < neighbor.G)
+                {
+                    neighbor.G = cost;
+                    neighbor.H = GetDistance(neighbor, endNode);
+                    neighbor.Parent = currentNode;
+                    // if the neighbor is not in the open list, add it to the open list
+                    if (!openList.Contains(neighbor))
+                    {
+                        openList.Add(neighbor);
+                        Console.WriteLine(neighbor);
+                    }
+                }
             }
         }
-        else
-        {
-            //Setter will update the direction
-            _ghost.Direction = _ghost.Direction;
-        }
+        // if the open list is empty and we have not found the end node, there is no path
+        return null;
     }
-    private void CalculateCurrentNextTile()
-    {
-        //Get current tile
-        Vector3 currentPos = new Vector3(transform.position.x + 0.499f, transform.position.y + 0.499f);
-        _currentTile = _tiles[_manager.Index((int)currentPos.x, (int)currentPos.y)];
 
-        //Get the next tile by using the direction
-        if (_ghost.Direction.x > 0) _nextTile = _tiles[_manager.Index((int)(currentPos.x + 1), (int)currentPos.y)];
-        if (_ghost.Direction.x < 0) _nextTile = _tiles[_manager.Index((int)(currentPos.x - 1), (int)currentPos.y)];
-        if (_ghost.Direction.y > 0) _nextTile = _tiles[_manager.Index((int)currentPos.x, (int)(currentPos.y + 1))];
-        if (_ghost.Direction.y < 0) _nextTile = _tiles[_manager.Index((int)currentPos.x, (int)(currentPos.y - 1))];
-    }
-    private Tile GetTargetTilePerGhost()
+    private static List<Node> ConstructPath(Node endNode)
     {
-        Vector3 targetPos;
-        Tile targetTile;
-        Vector3 dir;
+        // create a list to store the path
+        List<Node> path = new List<Node>();
 
-        // get the target tile position (round it down to int so we can reach with Index() function)
-        switch (name.ToLower())
+        // add the end node to the path
+        path.Add(endNode);
+
+        // set the current node to the end node's parent
+        Node currentNode = endNode.Parent;
+
+        // while the current node is not the start node
+        while (currentNode != null)
         {
-            case "blinky":  // target = pacman
-                targetPos = new Vector3(_target.position.x + 0.499f, _target.position.y + 0.499f);
-                targetTile = _tiles[_manager.Index((int)targetPos.x, (int)targetPos.y)];
-                break;
-            case "pinky":   // target = pacman + 4*pacman's direction (4 steps ahead of pacman)
-                dir = _target.GetComponent<PlayerController>().Direction;
-                targetPos = new Vector3(_target.position.x + 0.499f, _target.position.y + 0.499f) + 4 * dir;
+            // add the current node to the path
+            path.Add(currentNode);
 
-                // if pacmans going up, not 4 ahead but 4 up and 4 left is the target
-                // read about it here: http://gameinternals.com/post/2072558330/understanding-pac-man-ghost-behavior
-                // so subtract 4 from X coord from target position
-                if (dir == Vector3.up) targetPos -= new Vector3(4, 0, 0);
-
-                targetTile = _tiles[_manager.Index((int)targetPos.x, (int)targetPos.y)];
-                break;
-            case "inky":    // target = ambushVector(pacman+2 - blinky) added to pacman+2
-                dir = _target.GetComponent<PlayerController>().Direction;
-                Vector3 blinkyPos = GameObject.Find("blinky").transform.position;
-                Vector3 ambushVector = _target.position + 2 * dir - blinkyPos;
-                targetPos = new Vector3(_target.position.x + 0.499f, _target.position.y + 0.499f) + 2 * dir + ambushVector;
-                targetTile = _tiles[_manager.Index((int)targetPos.x, (int)targetPos.y)];
-                break;
-            case "clyde":
-                targetPos = new Vector3(_target.position.x + 0.499f, _target.position.y + 0.499f);
-                targetTile = _tiles[_manager.Index((int)targetPos.x, (int)targetPos.y)];
-                if (_manager.distance(targetTile, _currentTile) < 9)
-                    targetTile = _tiles[_manager.Index(0, 2)];
-                break;
-            default:
-                targetTile = null;
-                Debug.Log("TARGET TILE NOT ASSIGNED");
-                break;
-
+            // set the current node to its parent
+            currentNode = currentNode.Parent;
         }
-        return targetTile;
+
+        // reverse the list to get the path from start to end
+        path.Reverse();
+
+        return path;
+    }
+
+    private static List<Node> GetNeighbors(Node node, bool[,] map)
+    {
+        // create a list to store the neighbors
+        List<Node> neighbors = new List<Node>();
+
+        // add nodes to the list if they are walkable and within the bounds of the map
+        if (IsWalkable(node.X - 1, node.Y, map))
+        {
+            neighbors.Add(new Node(node.X - 1, node.Y));
+        }
+        if (IsWalkable(node.X + 1, node.Y, map))
+        {
+            neighbors.Add(new Node(node.X + 1, node.Y));
+        }
+        if (IsWalkable(node.X, node.Y - 1, map))
+        {
+            neighbors.Add(new Node(node.X, node.Y - 1));
+        }
+        if (IsWalkable(node.X, node.Y + 1, map))
+        {
+            neighbors.Add(new Node(node.X, node.Y + 1));
+        }
+
+        return neighbors;
+    }
+
+    private static bool IsWalkable(int x, int y, bool[,] map)
+    {
+        // return true if the coordinates are within the bounds of the map and the tile is walkable
+        return x >= 0 && x < map.GetLength(0) && y >= 0 && y < map.GetLength(1) && map[x, y];
+    }
+
+    private static double GetDistance(Node node1, Node node2)
+    {
+        // use the Manhattan distance heuristic to estimate the distance between two nodes
+        return Math.Abs(node1.X - node2.X) + Math.Abs(node1.Y - node2.Y);
     }
 }

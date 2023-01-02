@@ -9,6 +9,7 @@ public class MapCreator : MonoBehaviour
 {
     [SerializeField] private Transform _mapParent;
     [SerializeField] private GameObject _wallObject;
+    [SerializeField] private GameObject _pathObject;
 
     void Start()
     {
@@ -63,7 +64,7 @@ public class MapCreator : MonoBehaviour
                 for (int i = 0; i < line.Length; ++i)
                 {
                     //Create new tile
-                    Tile newTile = new Tile(X, Y);
+                    Tile newTile = new Tile(X, Y, TileManager.tiles.Count);
 
                     //Check if floor tile
                     if (line[i] == '1')
@@ -150,6 +151,13 @@ public class MapCreator : MonoBehaviour
             {
                 GameObject tempWall = Instantiate(_wallObject, postion, Quaternion.identity, _mapParent);
                 tempWall.name = $"Wall(Y:{tile.y}, X:{tile.x})";
+                //tempWall.name = $"Index: {tile.index}";
+            }
+            else
+            {
+                GameObject tempWall = Instantiate(_pathObject, postion, Quaternion.identity, _mapParent);
+                tempWall.name = $"Wall(Y:{tile.y}, X:{tile.x})";
+                //tempWall.name = $"Index: {tile.index}";
             }
         }
     }

@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class TileManager : MonoBehaviour
+public class TileManager
 {
     public static List<Tile> tiles = new List<Tile>();
     public static int height = 0;
@@ -14,7 +14,7 @@ public class TileManager : MonoBehaviour
     /// <param name="X"></param>
     /// <param name="Y"></param>
     /// <returns></returns>
-    public int Index(int X, int Y)
+    public static int Index(int X, int Y)
     {
         //Check if position is in bounds and return if so
         if (X >= 1 && X <= width && Y <= height && Y >= 1)
@@ -31,7 +31,7 @@ public class TileManager : MonoBehaviour
         return (height - Y) * width + X - 1;
     }
 
-    public int Index(Tile tile)
+    public static int Index(Tile tile)
     {
         return (height - tile.y) * width + tile.x - 1;
     }
@@ -42,7 +42,7 @@ public class TileManager : MonoBehaviour
     /// <param name="tile1"></param>
     /// <param name="tile2"></param>
     /// <returns></returns>
-    public float distance(Tile tile1, Tile tile2)
+    public static float distance(Tile tile1, Tile tile2)
     {
         return Mathf.Sqrt(Mathf.Pow(tile1.x - tile2.x, 2) + Mathf.Pow(tile1.y - tile2.y, 2));
     }
