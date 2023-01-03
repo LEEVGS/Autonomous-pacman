@@ -4,6 +4,7 @@
     public int y { get; set; }
     public int index { get; set; }
     public bool occupied { get; set; }
+    public bool powerup { get; set; }
     public int adjacentCount { get; set; }
     public bool isIntersection { get; set; }
 

@@ -1,8 +1,8 @@
 # Autonomous pacman
-##Enemy AI
+## Enemy AI
 - Independent behaviour
 - Pathfinding
 - Seeks enemy when in vision
 
-##Player
+## Player
 - Manual input (for now)

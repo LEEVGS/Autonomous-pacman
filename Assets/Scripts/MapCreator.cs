@@ -10,6 +10,7 @@ public class MapCreator : MonoBehaviour
     [SerializeField] private Transform _mapParent;
     [SerializeField] private GameObject _wallObject;
     [SerializeField] private GameObject _pathObject;
+    [SerializeField] private GameObject _powerupObject;
 
     void Start()
     {
@@ -21,7 +22,7 @@ public class MapCreator : MonoBehaviour
         //Map data in string (0 wall 1 floor) TODO: Read from file
         string data = @"0000000000000000000000000000
 						0111111111111001111111111110
-						0100001000001001000001000010
+						0200001000001001000001000020
 						0100001000001111000001000010
 						0100001000001001000001000010
 						0111111111111001111111111110
@@ -46,7 +47,7 @@ public class MapCreator : MonoBehaviour
 						0001001001000000001001001000
 						0001001001000000001001001000
 						0111111001111001111001111110
-						0100001000001001000001000010
+						0200001000001001000001000020
 						0100001000001001000001000010
 						0111111111111111111111111110
 						0000000000000000000000000000";
@@ -67,7 +68,7 @@ public class MapCreator : MonoBehaviour
                     Tile newTile = new Tile(X, Y, TileManager.tiles.Count);
 
                     //Check if floor tile
-                    if (line[i] == '1')
+                    if (line[i] == '1' || line[i] == '2')
                     {
                         //Check if tile before him is also floor
                         if (i != 0 && line[i - 1] == '1')
@@ -79,6 +80,10 @@ public class MapCreator : MonoBehaviour
                             //Add connection count to each other
                             newTile.adjacentCount++;
                             TileManager.tiles[TileManager.tiles.Count - 1].adjacentCount++;
+                        }
+                        if (line[i] == '2')
+                        {
+                            newTile.powerup = true;
                         }
                     }
                     else
@@ -151,13 +156,16 @@ public class MapCreator : MonoBehaviour
             {
                 GameObject tempWall = Instantiate(_wallObject, postion, Quaternion.identity, _mapParent);
                 tempWall.name = $"Wall(Y:{tile.y}, X:{tile.x})";
-                //tempWall.name = $"Index: {tile.index}";
+            }
+            else if (tile.powerup)
+            {
+                GameObject tempWall = Instantiate(_powerupObject, postion, Quaternion.identity, _mapParent);
+                tempWall.name = $"PowerUp(Y:{tile.y}, X:{tile.x})";
             }
             else
             {
                 GameObject tempWall = Instantiate(_pathObject, postion, Quaternion.identity, _mapParent);
-                tempWall.name = $"Wall(Y:{tile.y}, X:{tile.x})";
-                //tempWall.name = $"Index: {tile.index}";
+                tempWall.name = $"Food(Y:{tile.y}, X:{tile.x})";
             }
         }
     }

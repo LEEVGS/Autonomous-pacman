@@ -10,6 +10,8 @@ public class PlayerController : MonoBehaviour
     private Vector2 _dir = Vector2.zero;
     private Vector2 _nextDir = Vector2.zero;
 
+    private int _score = 0;
+
     public Vector2 Direction
     {
         get { return _dir; }
@@ -35,7 +37,7 @@ public class PlayerController : MonoBehaviour
         Vector2 pos = transform.position;
         direction += new Vector2(direction.x * 0.45f, direction.y * 0.45f);
         RaycastHit2D hit = Physics2D.Linecast(pos + direction, pos);
-        return hit.collider.name == "pacdot" || (hit.collider == GetComponent<Collider2D>());
+        return hit.collider.tag == "Food" || hit.collider.tag == "Powerup" || (hit.collider == GetComponent<Collider2D>());
     }
     public void ResetDestination()
     {
@@ -74,6 +76,21 @@ public class PlayerController : MonoBehaviour
                 }
                 //Otherwise don't update destination (keeps player at position)
             }
+        }
+    }
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.tag == "Food")
+        {
+            Destroy(collision.gameObject);
+            _score += 100;
+            Debug.Log(_score);
+        }
+        if (collision.tag == "Powerup")
+        {
+            Destroy(collision.gameObject);
+            _score += 500;
+            Debug.Log(_score);
         }
     }
 }
