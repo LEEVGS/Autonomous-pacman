@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class Gamemanager : MonoBehaviour
 {
+    public static Gamemanager instance;
+
+    private void Start()
+    {
+        instance = this;
+    }
+
     public static int Score = 0;
     public static bool Powered = false;
     private const float _maxPowerupDuration = 5f;

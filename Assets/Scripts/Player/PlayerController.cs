@@ -83,14 +83,12 @@ public class PlayerController : MonoBehaviour
         if (collision.tag == "Food")
         {
             Destroy(collision.gameObject);
-            _score += 100;
-            Debug.Log(_score);
+            Gamemanager.instance.CollectFood();
         }
         if (collision.tag == "Powerup")
         {
             Destroy(collision.gameObject);
-            _score += 500;
-            Debug.Log(_score);
+            Gamemanager.instance.CollectPowerup();
         }
     }
 }

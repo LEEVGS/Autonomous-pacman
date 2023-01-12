@@ -33,6 +33,7 @@ public class GhostMove : MonoBehaviour
     }
     private void Update()
     {
+        _flee = Gamemanager.Powered;
         if (_flee)
         {
             UpdateFlee();
