@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class Gamemanager : MonoBehaviour
 {
     public static Gamemanager instance;
+    [SerializeField] private TextMeshProUGUI _scoreText;
 
     private void Start()
     {
@@ -27,6 +29,7 @@ public class Gamemanager : MonoBehaviour
     }
     private void Update()
     {
+        _scoreText.text = $"Score: {Score}";
         if (_poweredDuration >= 0f)
         {
             Powered = true;

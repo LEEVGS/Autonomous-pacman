@@ -85,10 +85,21 @@ public class PlayerController : MonoBehaviour
             Destroy(collision.gameObject);
             Gamemanager.instance.CollectFood();
         }
-        if (collision.tag == "Powerup")
+        else if (collision.tag == "Powerup")
         {
             Destroy(collision.gameObject);
             Gamemanager.instance.CollectPowerup();
+        }
+        else if (collision.tag == "Enemy")
+        {
+            if (Gamemanager.Powered)
+            {
+                collision.gameObject.SetActive(false);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
     }
 }
